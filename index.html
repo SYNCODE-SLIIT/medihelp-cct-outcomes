@@ -872,6 +872,18 @@ main { padding-block: 28px 40px; display: flex; flex-direction: column; gap: 36p
     }
   }
 
+  /* First visit in this browser: start from the outcomes CSV published with the site. */
+  async function seedFromCsv() {
+    try {
+      var res = await fetch('sample-outcomes.csv', { cache: 'no-store' });
+      if (!res.ok) return {};
+      var g = groupRows(parseCsv(await res.text())).groups, docs = {}, now = new Date().toISOString();
+      Object.keys(g).forEach(function (id) { docs[id] = { row: g[id].leaf.id, col: g[id].p.id, items: g[id].items, updatedAt: now, by: null }; });
+      if (Object.keys(docs).length) lsWrite(docs);
+      return docs;
+    } catch (e) { return {}; }
+  }
+
   async function init() {
     renderHero();
     renderAll();
@@ -890,6 +902,7 @@ main { padding-block: 28px 40px; display: flex; flex-direction: column; gap: 36p
       /* Shared storage is not available here, so entries are kept in this browser. */
       state.mode = 'device';
       state.docs = lsRead();
+      if (!Object.keys(state.docs).length) state.docs = await seedFromCsv();
       state.loaded = true;
       renderAll();
       return;
